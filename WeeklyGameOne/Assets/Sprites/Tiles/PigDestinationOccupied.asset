@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13b75c95f34a00d4e8c04f76b73312e6, type: 3}
+  m_Name: PigDestinationOccupied
+  m_EditorClassIdentifier: 
+  m_AnimatedSprites:
+  - {fileID: -1581956887, guid: b9b7bcba4026bc747bb9b399c5eb61a7, type: 3}
+  - {fileID: 2058474568, guid: b9b7bcba4026bc747bb9b399c5eb61a7, type: 3}
+  - {fileID: -496231203, guid: b9b7bcba4026bc747bb9b399c5eb61a7, type: 3}
+  - {fileID: -406342441, guid: b9b7bcba4026bc747bb9b399c5eb61a7, type: 3}
+  m_MinSpeed: 1
+  m_MaxSpeed: 1
+  m_AnimationStartTime: 0
+  m_AnimationStartFrame: 0
+  m_TileColliderType: 0

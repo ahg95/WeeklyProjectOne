@@ -3,7 +3,6 @@ using UnityEngine.UIElements;
 
 public class UIController : MonoBehaviour
 {
-    [SerializeField]
     private MovementController _movementController;
     
     private Button _up;
@@ -11,7 +10,13 @@ public class UIController : MonoBehaviour
     private Button _left;
     private Button _right;
     private Button _retry;
-    
+    private Label _winLoseText;
+
+    private void Awake()
+    {
+        _movementController = FindObjectOfType<MovementController>();
+    }
+
     private void OnEnable()
     {
         var uiDocument = GetComponent<UIDocument>();
@@ -22,35 +27,47 @@ public class UIController : MonoBehaviour
         _left = root.Q("Left") as Button;
         _right = root.Q("Right") as Button;
         _retry = root.Q("Reset") as Button;
+        _winLoseText = root.Q("WinLoseText") as Label;
         
         _up.RegisterCallback<ClickEvent>((click) =>
         {
-            _movementController.Move(CompassDirection.North);
+            _movementController.OnMovementInputReceived(CompassDirection.North);
         });
         
         _down.RegisterCallback<ClickEvent>((click) =>
         {
-            _movementController.Move(CompassDirection.South);
+            _movementController.OnMovementInputReceived(CompassDirection.South);
         });
         
         _left.RegisterCallback<ClickEvent>((click) =>
         {
-            _movementController.Move(CompassDirection.West);
+            _movementController.OnMovementInputReceived(CompassDirection.West);
         });
         
         _right.RegisterCallback<ClickEvent>((click) =>
         {
-            _movementController.Move(CompassDirection.East);
+            _movementController.OnMovementInputReceived(CompassDirection.East);
         });
         
         _retry.RegisterCallback<ClickEvent>((click) =>
         {
-            _movementController.ResetLevel();
+            //levelLoader.ResetLevel();
         });
     }
 
     private void OnDisable()
     {
-        // Unregister here
+        // TODO: Unregister here
+        
+    }
+
+    public void OnLevelCompleted()
+    {
+        _winLoseText.text = "Good Night!";
+    }
+    
+    public void OnLevelFailed()
+    {
+        _winLoseText.text = "Oops!";
     }
 }

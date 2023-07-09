@@ -1,17 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 
 public class MovementController : MonoBehaviour
 {
+    [Header("Tags")]
     [SerializeField]
-    private GridLayout _gridLayout;
-    
-    [Header("Tilemaps")]
-    [SerializeField]
-    private Tilemap _groundTilemap;
+    private string _groundTilemapTag;
 
     [Header("Tiles")]
     [SerializeField]
@@ -20,13 +17,32 @@ public class MovementController : MonoBehaviour
     private TileBase _obstacleTile;
     [SerializeField]
     private TileBase _dangerTile;
+    [SerializeField]
+    private TileBase _mudTile;
+    
+    [Header("Events")]
+    [SerializeField]
+    private GameEvent _levelCompleted;
+    [SerializeField]
+    private GameEvent _levelFailed;
 
+    private GridLayout _grid;
+    private Tilemap _groundTilemap;
+    
+    private InputActions _inputActions;
     private List<Moveable> _moveables;
     private int _nrOfActiveAnimations;
-    private int _currentLevelIndex;
+
+    private bool _isFirstTick;
     
     private void Awake()
     {
+        _grid = FindObjectOfType<GridLayout>();
+        _groundTilemap = GameObject.FindWithTag(_groundTilemapTag).GetComponent<Tilemap>();
+        
+        _inputActions = new InputActions();
+        _inputActions.Gameplay.Movement.Enable();
+        
         _moveables = FindObjectsOfType<Moveable>().ToList();
 
         foreach (var character in _moveables)
@@ -41,15 +57,22 @@ public class MovementController : MonoBehaviour
                 _nrOfActiveAnimations--;
                 
                 var sendingMoveable = sender as Moveable;
-
-                // If the movable has a destination, then check if it is reached. If so, check if the game is won.
+                
+                // If the movable has a destination, then check if it is reached or if it is in danger. If so, check if the game is won.
                 if (sendingMoveable._Destination != null)
                 {
                     var position = sendingMoveable.transform.position;
-                    var gridPosition = _gridLayout.WorldToCell(position);
+                    var gridPosition = _grid.WorldToCell(position);
                     var tile = _groundTilemap.GetTile(gridPosition);
 
-                    if (tile == sendingMoveable._Destination)
+                    if (tile == _dangerTile)
+                    {
+                        sendingMoveable._IsControllable = false;
+                        sendingMoveable._IsMoving = false;
+                        sendingMoveable.Sink();
+                        _levelFailed.Raise();
+                    }
+                    else if (tile == sendingMoveable._Destination)
                     {
                         sendingMoveable.Hide();
                         sendingMoveable._IsControllable = false;
@@ -70,12 +93,11 @@ public class MovementController : MonoBehaviour
 
                         if (gameIsWon)
                         {
-                            Debug.Log("Game is won!");
+                            _levelCompleted.Raise();
                         }
                     }
                 }
 
-                
                 // If all animations have been played, and there is still some object that has movement, then move all the moveables
                 if (_nrOfActiveAnimations == 0)
                 {
@@ -83,7 +105,7 @@ public class MovementController : MonoBehaviour
                     {
                         if (moveable._IsMoving)
                         {
-                            MoveMoveables();
+                            Tick();
                             break;
                         }
                     }
@@ -92,44 +114,21 @@ public class MovementController : MonoBehaviour
         }
     }
 
-    
-// Update is called once per frame
-    void Update()
+    private void Update()
     {
-        var inputDirection = CompassDirection.None;
+        var movementInput = _inputActions.Gameplay.Movement.ReadValue<Vector2>();
 
-        if (Input.GetKey(KeyCode.UpArrow))
-        {
-            inputDirection = CompassDirection.North;
-        }
-        else if (Input.GetKey(KeyCode.DownArrow))
-        {
-            inputDirection = CompassDirection.South;
-        }
-        else if (Input.GetKey(KeyCode.LeftArrow))
-        {
-            inputDirection = CompassDirection.West;
-        }
-        else if (Input.GetKey(KeyCode.RightArrow))
-        {
-            inputDirection = CompassDirection.East;
-        }
-        
-        Move(inputDirection);
+        if (movementInput.y > 0)
+            OnMovementInputReceived(CompassDirection.North);
+        else if (movementInput.x < 0)
+            OnMovementInputReceived(CompassDirection.West);
+        else if (movementInput.y < 0)
+            OnMovementInputReceived(CompassDirection.South);
+        else if (movementInput.x > 0)
+            OnMovementInputReceived(CompassDirection.East);
     }
 
-    public void ProgressToNextLevel()
-    {
-        _currentLevelIndex++;
-        SceneManager.LoadScene(_currentLevelIndex);
-    }
-    
-    public void ResetLevel()
-    {
-        SceneManager.LoadScene(_currentLevelIndex);
-    }
-    
-    public void Move(CompassDirection movementDirection)
+    public void OnMovementInputReceived(CompassDirection movementDirection)
     {
         if (_nrOfActiveAnimations > 0 || movementDirection == CompassDirection.None)
             return;
@@ -144,11 +143,15 @@ public class MovementController : MonoBehaviour
                 moveable._IsMoving = true;
             }
         }
+
+        _isFirstTick = true;
         
-        MoveMoveables();
+        Tick();
+
+        _isFirstTick = false;
     }
     
-    private void MoveMoveables()
+    private void Tick()
     {
         // Calculate the provisional next positions of all moveables on the grid
         var nextGridPositions = new List<Vector3Int>(_moveables.Count);
@@ -158,7 +161,7 @@ public class MovementController : MonoBehaviour
             var moveable = _moveables[i];
 
             var currentPosition = moveable.transform.position;
-            var currentGridPosition = _gridLayout.WorldToCell(currentPosition);
+            var currentGridPosition = _grid.WorldToCell(currentPosition);
             
             if (moveable._IsMoving)
             {
@@ -170,8 +173,6 @@ public class MovementController : MonoBehaviour
                 nextGridPositions.Add(currentGridPosition);
             }
         }
-        
-        
         
         // Check for each moveable if their next position is valid. 
         bool nextGridPositionsChanged;
@@ -193,13 +194,12 @@ public class MovementController : MonoBehaviour
                     moveable._IsMoving = false;
                     
                     var currentPosition = moveable.transform.position;
-                    var currentGridPosition = _gridLayout.WorldToCell(currentPosition);
+                    var currentGridPosition = _grid.WorldToCell(currentPosition);
 
                     nextGridPositions[i] = currentGridPosition;
                     nextGridPositionsChanged = true;
                 }
             }
-            
             
             // Identify moveables that have the same next position
             var overlappingMoveIndices = new HashSet<int>();
@@ -223,7 +223,6 @@ public class MovementController : MonoBehaviour
                     }
                 }
             }
-
             
             // Moveables that have the same next position should not move
             foreach (var index in overlappingMoveIndices)
@@ -232,25 +231,53 @@ public class MovementController : MonoBehaviour
                 moveable._IsMoving = false;
 
                 var currentPosition = moveable.transform.position;
-                var currentGridPosition = _gridLayout.WorldToCell(currentPosition);
+                var currentGridPosition = _grid.WorldToCell(currentPosition);
 
                 nextGridPositions[index] = currentGridPosition;
                 nextGridPositionsChanged = true;
             }
             
         } while (nextGridPositionsChanged);
-
-        
         
         // Actually move all moveables that are still moving
-        foreach (var moveable in _moveables)
+        for (int i = 0; i < _moveables.Count; i++)
         {
-            if (moveable._IsMoving)
+            var moveable = _moveables[i];
+
+            if (!moveable._IsMoving)
+                continue;
+
+            if (moveable._SlidesOnMud)
+            {
+                var nextGridPosition = nextGridPositions[i];
+                var nextTile = _groundTilemap.GetTile(nextGridPosition);
+                moveable._IsMoving = nextTile == _mudTile;
+
+                if (_isFirstTick)
+                {
+                    moveable.Move();
+                }
+                else
+                {
+                    var currentPosition = moveable.transform.position;
+                    var currentGridPosition = _grid.WorldToCell(currentPosition);
+                    var currentTile = _groundTilemap.GetTile(currentGridPosition);
+
+                    if (currentTile == _mudTile)
+                    {
+                        moveable.Slide();
+                    }
+                    else
+                    {
+                        moveable.Move();
+                    }
+                }
+            }
+            else
             {
                 moveable._IsMoving = false;
                 moveable.Move();
             }
-
         }
     }
 }
