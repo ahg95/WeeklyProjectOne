@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -33,7 +32,7 @@ public class MovementController : MonoBehaviour
     private List<Moveable> _moveables;
     private int _nrOfActiveAnimations;
 
-    private bool _isFirstTick;
+    private bool _isFirstTickAfterInput;
     
     private void Awake()
     {
@@ -133,6 +132,7 @@ public class MovementController : MonoBehaviour
         if (_nrOfActiveAnimations > 0 || movementDirection == CompassDirection.None)
             return;
 
+        // Set movement of all controllable moveables
         for (int i = 0; i < _moveables.Count; i++)
         {
             var moveable = _moveables[i];
@@ -142,13 +142,70 @@ public class MovementController : MonoBehaviour
                 moveable.SetOrientation(movementDirection);
                 moveable._IsMoving = true;
             }
+            
         }
+        
+        // Check for each moveable that can be pushed if it is pushed
+        for (int i = 0; i < _moveables.Count; i++)
+        {
+            var moveable = _moveables[i];
 
-        _isFirstTick = true;
+            if (!moveable._IsPushable)
+                continue;
+            
+            var originalOrientation = moveable._Orientation;
+                
+            var currentPosition = moveable.transform.position;
+            var currentGridPosition = _grid.WorldToCell(currentPosition);
+            var northGridPosition = currentGridPosition + CompassDirectionUtil.CompassDirectionToIntVector(CompassDirection.North);
+            var eastGridPosition = currentGridPosition + CompassDirectionUtil.CompassDirectionToIntVector(CompassDirection.East);
+            var southGridPosition  = currentGridPosition + CompassDirectionUtil.CompassDirectionToIntVector(CompassDirection.South);
+            var westGridPosition = currentGridPosition + CompassDirectionUtil.CompassDirectionToIntVector(CompassDirection.West);
+            
+            // Check the surrounding tiles
+            for (int j = 0; j < _moveables.Count; j++)
+            {
+                if (j == i)
+                    continue;
+                var otherMoveable = _moveables[j];
+                
+                if (!otherMoveable._IsMoving || !otherMoveable._IsControllable || !otherMoveable._CanPush)
+                    continue;
+
+                var otherMoveablePosition = otherMoveable.transform.position;
+                var otherMoveableGridPosition = _grid.WorldToCell(otherMoveablePosition);
+
+                if ((otherMoveableGridPosition == northGridPosition &&
+                     otherMoveable._Orientation == CompassDirection.South)
+                    || (otherMoveableGridPosition == eastGridPosition &&
+                        otherMoveable._Orientation == CompassDirection.West)
+                    || (otherMoveableGridPosition == southGridPosition &&
+                        otherMoveable._Orientation == CompassDirection.North)
+                    || (otherMoveableGridPosition == westGridPosition &&
+                        otherMoveable._Orientation == CompassDirection.East))
+                {
+                    if (moveable._IsMoving)
+                    {
+                        moveable._IsMoving = false;
+                        moveable.SetOrientation(originalOrientation);
+                        break;
+                    }
+                    else
+                    {
+                        moveable._IsMoving = true;
+                        moveable.SetOrientation(otherMoveable._Orientation);
+                    }
+                }
+            }
+        }
+            
+            
+        
+        _isFirstTickAfterInput = true;
         
         Tick();
 
-        _isFirstTick = false;
+        _isFirstTickAfterInput = false;
     }
     
     private void Tick()
@@ -181,7 +238,6 @@ public class MovementController : MonoBehaviour
         {
             nextGridPositionsChanged = false;
             
-            
             // Check if there are any obstacles on the nextGridPosition that prevent moving
             for (int i = 0; i < _moveables.Count; i++)
             {
@@ -207,8 +263,7 @@ public class MovementController : MonoBehaviour
             for (int i = 0; i < _moveables.Count; i++)
             {
                 var nextGridPosition = nextGridPositions[i];
-
-
+                
                 for (int j = i + 1; j < _moveables.Count; j++)
                 {
                     var otherNextGridPosition = nextGridPositions[j];
@@ -223,7 +278,7 @@ public class MovementController : MonoBehaviour
                     }
                 }
             }
-            
+
             // Moveables that have the same next position should not move
             foreach (var index in overlappingMoveIndices)
             {
@@ -253,7 +308,7 @@ public class MovementController : MonoBehaviour
                 var nextTile = _groundTilemap.GetTile(nextGridPosition);
                 moveable._IsMoving = nextTile == _mudTile;
 
-                if (_isFirstTick)
+                if (_isFirstTickAfterInput)
                 {
                     moveable.Move();
                 }
@@ -272,12 +327,12 @@ public class MovementController : MonoBehaviour
                         moveable.Move();
                     }
                 }
-            }
-            else
+            } else
             {
-                moveable._IsMoving = false;
+                moveable._IsMoving = moveable._KeepsMomentum;
                 moveable.Move();
             }
+
         }
     }
 }

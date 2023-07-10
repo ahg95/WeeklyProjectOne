@@ -47,7 +47,7 @@ MonoBehaviour:
   _groundTilemapTag: GroundTilemap
   _groundTile: {fileID: 11400000, guid: b8f3d60f2b58e8e428a4439aa96d2a8b, type: 2}
   _obstacleTile: {fileID: 11400000, guid: 4a8e3803889f38449b219e90121c7877, type: 2}
-  _dangerTile: {fileID: 11400000, guid: 7dae431b484b1564094da7cfa2b3dfe2, type: 2}
-  _mudTile: {fileID: 11400000, guid: 571c9c00670874a49a599815527c7c76, type: 2}
+  _dangerTile: {fileID: 11400000, guid: 7233783503cc092419b3ea70871cdcd3, type: 2}
+  _mudTile: {fileID: 11400000, guid: 7dae431b484b1564094da7cfa2b3dfe2, type: 2}
   _levelCompleted: {fileID: 11400000, guid: e32fef70a8828d44b8b73ba607609d52, type: 2}
   _levelFailed: {fileID: 11400000, guid: 5203367e9d2067947b026d24fdbc53c0, type: 2}

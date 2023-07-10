@@ -189,7 +189,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 10
-  m_Sprite: {fileID: 21300000, guid: 285790b90843c064ca396aa6a2c3e919, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 6e3c8cbe228c89049b6ccafacd8cc2d4, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -330,8 +330,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _IsControllable: 1
-  _Orientation: 2
   _SlidesOnMud: 1
+  _IsPushable: 0
+  _CanPush: 1
+  _KeepsMomentum: 0
   _Destination: {fileID: 11400000, guid: f9c11a69cd0443341a65bd96f9526cca, type: 2}
   _OccupiedDestination: {fileID: 11400000, guid: 7b6b1532a8b4a9748a88f339d416e8e2, type: 2}
   _IsMoving: 0

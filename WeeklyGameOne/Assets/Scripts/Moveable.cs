@@ -5,9 +5,14 @@ using UnityEngine.Tilemaps;
 
 public class Moveable : MonoBehaviour
 {
+    [Header("Properties")]
     public bool _IsControllable;
-    public CompassDirection _Orientation;
     public bool _SlidesOnMud;
+    public bool _IsPushable;
+    public bool _CanPush;
+    public bool _KeepsMomentum;
+    
+    public CompassDirection _Orientation { get; private set; }
     
     [Header("Destination")]
     public TileBase _Destination;
